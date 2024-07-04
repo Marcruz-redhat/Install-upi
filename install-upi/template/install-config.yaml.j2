@@ -1,0 +1,29 @@
+{% for host in groups['bastion'] %}
+apiVersion: v1
+baseDomain: {{ hostvars[host]['base_dns_domain'] }} 
+compute: 
+- hyperthreading: Enabled 
+  name: worker
+  replicas: 0
+controlPlane: 
+  hyperthreading: Enabled 
+  name: master
+  replicas: 3
+metadata:
+  name: {{ hostvars[host]['cluster_name'] }}  
+platform:
+  none: {}
+fips: false
+networking:
+  networkType: OVNKubernetes
+  clusterNetwork:
+  - cidr: {{ hostvars[host]['clusterNetwork'] }}  
+    hostPrefix: 23
+  serviceNetwork:
+  - {{ hostvars[host]['serviceNetwork'] }}  
+  machineNetwork:
+  - cidr: {{ hostvars[host]['machineNetwork'] }}  
+pullSecret: '{{ hostvars[host]['pullsecret'] }}'
+sshKey: '{{ hostvars[host]['sshkey'] }}'
+{% endfor %}
+

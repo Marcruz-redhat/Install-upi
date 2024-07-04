@@ -1,0 +1,37 @@
+ddns-update-style interim;
+ignore client-updates;
+authoritative;
+allow booting;
+allow bootp;
+allow unknown-clients;
+default-lease-time 3600;
+default-lease-time 900;
+max-lease-time 7200;
+{% for host in groups['bastion'] %}
+option domain-name "{{hostvars[host]['cluster_name']}}.{{hostvars[host]['base_dns_domain']}}";
+option domain-name-servers bastion.rhbr-lab.com;
+
+subnet {{ hostvars[host]['machineNetwork'].split('/').0 }} netmask {{ hostvars[host]['machineNetwork'] | ansible.utils.ipaddr('netmask') }} {
+    range {{ hostvars[host]['machineNetwork'] | ansible.utils.ipaddr('10') | ansible.utils.ipaddr('address') }} {{ hostvars[host]['machineNetwork'] | ansible.utils.ipaddr('-100') | ansible.utils.ipaddr('address') }};
+    option routers {{ hostvars[host]['gateway'] }};
+    option subnet-mask {{ hostvars[host]['machineNetwork'] | ansible.utils.ipaddr('netmask') }};
+    option domain-name-servers 10.36.64.243;
+    # IP of PXE Server
+    next-server {{ hostvars[host]['ansible_host'] }};
+        filename "pxelinux.0";
+}
+{% endfor %}
+
+{% for host in groups['masters'] + groups['infras'] + groups['bootstrap'] + groups['workers'] %}
+
+host bastion.lagomes.rhbr-lab.com { 
+    hardware ethernet {{ hostvars[host]['mac'] }}; 
+    fixed-address {{ hostvars[host]['ansible_host'] }}; 
+    option host-name "{{ hostvars[host]['ansible_hostname'] }}";
+    allow booting;
+    }
+
+{% endfor %}
+
+
+

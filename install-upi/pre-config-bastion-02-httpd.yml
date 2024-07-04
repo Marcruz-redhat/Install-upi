@@ -1,0 +1,52 @@
+---
+- name: Prepare HTTPD
+  hosts: httpd_hosts
+  tasks:
+    - name: Install git client
+      ansible.builtin.dnf:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - httpd
+        - git
+        - "@Container Management"
+
+    - name: Create directory HTTPD
+      ansible.builtin.file:
+        state: directory
+        path: /opt/httpd
+        mode: '0755'
+        owner: root
+        group: root
+
+    - name: Start container HTTPD
+      containers.podman.podman_container:
+        name: http_store
+        image: quay.io/lagomes/httpd:latest
+        state: started
+        restart: true
+        ports:
+          - "9090:80"
+        volume:
+          - /opt/httpd/:/usr/local/apache2/htdocs/:Z
+
+    - name: Start container HTTPD para RHCOS
+      containers.podman.podman_container:
+        name: http_store_rhcos
+        image: quay.io/lagomes/httpd:latest
+        state: started
+        restart: true
+        ports:
+          - "9091:80"
+        volume:
+          - /opt/rhcos/:/usr/local/apache2/htdocs/:Z
+
+    - name: Permmit Firewall
+      ansible.posix.firewalld:
+        port: "{{ item }}"
+        permanent: true
+        state: enabled
+        immediate: true
+      loop:
+        - 9090/tcp
+        - 9091/tcp

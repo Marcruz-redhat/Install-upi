@@ -1,0 +1,122 @@
+---
+- name: Prepare Bastion
+  hosts: bastion
+  vars:
+  
+    rhcos_directory: /opt/rhcos/
+    imagens_rhcos:
+      - name: rhcos_live_initramfs
+        url: mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/latest/rhcos-live-initramfs.x86_64.img
+        dest: "{{ rhcos_directory }}/rhcos-live-initramfs.x86_64.img"
+
+      - name: rhcos_live_kernel
+        url: mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/latest/rhcos-live-kernel-x86_64
+        dest: "{{ rhcos_directory }}rhcos-live-kernel-x86_64"
+
+      - name: rhcos_live_rootfs
+        url: mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/latest/rhcos-live-rootfs.x86_64.img
+        dest: "{{ rhcos_directory }}rhcos-live-rootfs.x86_64.img"
+
+    clients:
+      # versao: 'latest'
+      # versao: '4.8.34'
+      oc_version: 'stable-4.14'
+      arq: 'x86_64'
+      # arq: 'ppc64le'
+      # version_roxctl: 3.72.1
+      roxctl_version: 'latest'
+
+  tasks:
+
+    - name: Install git client
+      ansible.builtin.dnf:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - httpd
+        - git
+        - "@Container Management"
+
+############# Download Images
+
+    - name: Create directory
+      ansible.builtin.file:
+        state: directory
+        path: "{{ rhcos_directory }}"
+        mode: '0755'
+        owner: root
+        group: root
+
+    - name: Download Images
+      loop: "{{ imagens_rhcos }}"
+      ansible.builtin.get_url:
+        url: https://{{ item.url }}
+        dest: "{{ item.dest }}"
+        mode: '0644'
+
+############# Download clientes
+
+    - name: Download roxctl
+      ansible.builtin.get_url:
+        url: https://mirror.openshift.com/pub/rhacs/assets/{{ clients.roxctl_version }}/bin/Linux/roxctl
+        dest: /usr/local/sbin/roxctl
+        mode: '0777'
+
+    - name: Roxctl
+      ansible.builtin.shell: roxctl version
+      register: roxctl_command
+      changed_when: roxctl_command.rc != 0 # <- Uses the return code to define when the task has changed.
+
+    - name: Unarchive a file that needs to be downloaded (added in 2.0)
+      ansible.builtin.unarchive:
+        src: https://mirror.openshift.com/pub/openshift-v4/{{ clients.arq }}/clients/ocp/{{ clients.oc_version }}/{{ item }}
+        dest: /usr/local/bin
+        remote_src: true
+      loop:
+        - openshift-client-linux.tar.gz
+        - openshift-install-linux.tar.gz
+
+    - name: OPENSHIFT-INSTALL bash completion
+      ansible.builtin.shell: /usr/local/bin/openshift-install completion bash > /etc/bash_completion.d/openshift-install
+
+    - name: OC completion
+      ansible.builtin.shell: /usr/local/bin/oc completion bash > /etc/bash_completion.d/openshift-install
+
+    - name: OC Version
+      ansible.builtin.shell: oc version
+      register: oc_command
+      ignore_errors: true
+
+    - name: OPENSHIFT-INSTALL version
+      ansible.builtin.shell: openshift-install version
+      register: openshift_install_command
+      ignore_errors: true
+
+    - name: Debug
+      ansible.builtin.debug:
+        msg: "{{ item.stdout_lines }}"
+      loop:
+        - "{{ oc_command }}"
+        - "{{ openshift_install_command }}"
+        - "{{ roxctl_command }}"
+
+############# FIREWALL
+
+    - name: Permmit Firewall
+      ansible.posix.firewalld:
+        port: "{{ item }}"
+        permanent: true
+        state: enabled
+        immediate: true
+      loop:
+        - 5432/tcp
+        - 69/udp
+        - 9090/tcp
+        - 9091/tcp
+        - 443/tcp
+        - 32700/tcp
+        - 22623/tcp
+        - 6443/tcp
+        - 80/tcp
+        - 10250/tcp
+

@@ -1,0 +1,49 @@
+---
+- name: Prepare haproxy
+  hosts: bastion
+  gather_facts: false
+  tasks:
+  
+    - name: Install dhcp client
+      ansible.builtin.dnf:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - haproxy
+  
+    - name: CReate files
+      ansible.builtin.template:
+        src: template/haproxy.conf.j2
+        dest: /opt/haproxy.conf
+        mode: '0644'
+        owner: root
+        group: root
+
+    - name: Allow firewalld
+      ansible.posix.firewalld:
+        service: "{{item}}"
+        permanent: yes
+        state: enabled
+        zone: public
+        immediate: yes
+      loop:
+      - https
+      - http
+
+    - name: Allow firewalld to stats
+      ansible.posix.firewalld:
+        port: 9000/tcp
+        permanent: yes
+        state: enabled
+        zone: public
+        immediate: yes
+
+    - name: Adicionar porta TCPs
+      community.general.seport:
+        ports: "{{ item }}"
+        proto: tcp
+        setype: http_port_t
+        state: present
+      loop:
+        - 6443
+        - 22623

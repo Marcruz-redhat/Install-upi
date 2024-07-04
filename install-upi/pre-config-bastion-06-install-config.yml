@@ -1,0 +1,62 @@
+---
+- name: Prepare install-config.yaml
+  hosts: bastion
+  gather_facts: false
+  tasks:
+    - name: Set directory
+      ansible.builtin.set_fact:
+        directory_of_install: "/root/ocp/{{ hostvars[item]['cluster_name'] }}/install"
+      with_items:
+        - "{{ groups['bastion'] | default([]) }}"
+
+    - name: Create directory
+      ansible.builtin.file:
+        state: directory
+        path: "{{ directory_of_install }}"
+        mode: '0755'
+        owner: root
+        group: root
+
+    - name: CReate files
+      ansible.builtin.template:
+        src: template/install-config.yaml.j2
+        dest: "{{ directory_of_install }}/install-config.yaml"
+        mode: '0644'
+        owner: root
+        group: root
+
+    - name: Create manifests
+      ansible.builtin.command:
+        chdir: "{{ directory_of_install }}"
+        argv:
+          - openshift-install
+          - create 
+          - manifests
+          - --dir
+          - "{{ directory_of_install }}"
+
+    - name: Create ignitions
+      ansible.builtin.command:
+        chdir: "{{ directory_of_install }}"
+        argv:
+          - openshift-install
+          - create 
+          - ignition-configs
+          - --dir
+          - "{{ directory_of_install }}"
+
+    - name: Copy ignitions
+      ansible.builtin.copy:
+        remote_src: true
+        src: "{{ directory_of_install }}/{{ item }}"
+        dest: /opt/httpd/
+        owner: root
+        group: root
+        mode: '0644'
+      loop:
+        - bootstrap.ign
+        - master.ign
+        - metadata.json
+        - worker.ign
+
+      

@@ -1,0 +1,121 @@
+#---------------------------------------------------------------------
+# Global settings
+#---------------------------------------------------------------------
+global
+    log 127.0.0.1 local2
+    chroot  /var/lib/haproxy
+    pidfile /var/run/haproxy.pid
+    maxconn 4000
+    user    haproxy
+    group   haproxy
+    daemon
+    # turn on stats unix socket
+    stats socket /var/lib/haproxy/stats
+    # utilize system-wide crypto-policies
+    ssl-default-bind-ciphers PROFILE=SYSTEM
+    ssl-default-server-ciphers PROFILE=SYSTEM
+
+
+
+#---------------------------------------------------------------------
+# common defaults that all the 'listen' and 'backend' sections will
+# use if not designated in their block
+#---------------------------------------------------------------------
+defaults
+    mode    http
+    log global
+    option  tcplog
+    option  dontlognull
+    option  http-server-close
+#    option  forwardfor  except  127.0.0.0/8
+    option  redispatch
+    retries 3
+    timeout http-request    10s
+    timeout queue   1m
+    timeout connect 10s
+    timeout client  1m
+    timeout server  1m
+    timeout http-keep-alive 10s
+    timeout check   10s
+    maxconn 3000
+
+
+frontend ingress_secure_6443
+    bind *:6443
+    mode tcp
+    default_backend ingress_secure_backend_6443
+
+backend ingress_secure_backend_6443
+    balance roundrobin
+    mode tcp
+{% for ip in groups['masters'] %}
+    server httpd{{loop.index}} {{hostvars[ip].ansible_host}}:443 check
+{% endfor %}    
+
+####################################################################################################
+
+frontend ingress_secure_22623
+    bind *:22623
+    mode tcp
+    default_backend ingress_secure_backend_22623
+
+backend ingress_secure_backend_6443
+    balance roundrobin
+    mode tcp
+{% for ip in groups['masters'] %}
+    server httpd{{loop.index}} {{hostvars[ip].ansible_host}}:443 check
+{% endfor %}   
+
+####################################################################################################
+
+frontend ingress_insecure
+    bind *:80
+    mode tcp
+    default_backend ingress_insecure_backend
+
+backend ingress_insecure_backend
+    balance roundrobin
+    mode tcp
+{% for ip in groups['infras'] %}
+    server httpd{{loop.index}} {{hostvars[ip].ansible_host}}:80 check
+{% endfor %}    
+
+####################################################################################################
+
+frontend ingress_secure
+    bind *:443
+    mode tcp
+    default_backend ingress_secure_backend
+
+backend ingress_secure_backend
+    balance roundrobin
+    mode tcp
+{% for ip in groups['infras'] %}
+    server httpd{{loop.index}} {{hostvars[ip].ansible_host}}:443 check
+{% endfor %}    
+
+####################################################################################################
+
+frontend ingress_registry
+    bind *:5000
+    mode tcp
+    default_backend ingress_registry_backend
+
+backend ingress_registry_backend
+    balance roundrobin
+    mode tcp
+{% for ip in groups['infras'] %}
+    server httpd{{loop.index}} {{hostvars[ip].ansible_host}}:5000 check
+{% endfor %}    
+
+
+# ---------------------------------------------------------------------
+# Exposing HAProxy Statistic Page
+# ---------------------------------------------------------------------
+listen stats
+    bind :9000
+    stats enable    
+    stats uri /
+    stats hide-version
+    stats auth admin:RedHt322
+

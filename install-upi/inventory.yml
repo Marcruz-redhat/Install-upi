@@ -1,0 +1,120 @@
+all:
+  vars:
+    cluster_name: lagomes
+    base_dns_domain: conectado.local
+    ssh_pub_key: "{{ lookup('file', '/root/.ssh/'+cluster_name+'.pub') }}"
+    gateway: 10.36.64.243
+    dns1: 10.36.64.2
+    dns2: 10.36.64.3
+    clusterNetwork: 10.156.0.0/14
+    serviceNetwork: 172.50.0.0/16
+    machineNetwork: 10.36.0.0/16
+
+    pullsecret: '{"auths":{"cloud.openshift.com":{"auth":"==","email":"lagomes@redhat.com"},"quay.io":{"auth":"==","email":"lagomes@redhat.com"},"registry.connect.redhat.com":{"auth":"==","email":"lagomes@redhat.com"},"registry.redhat.io":{"auth":"==","email":"lagomes@redhat.com"}}}'
+
+    sshkey: 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCtwKcFiroTGEuDhwL4LDryj18r9DaReF2sIMYp8CtcAY74g5RyfRLU6rS3MlnoHTT57KaR0oGTTRdBkUMRTpiytkOuqhRi3m0P7vTpb5Iim3ofuHMmJUCIBB/VH9gLTrxGpR+wnifgOedNPVYt8+sQ/Y7W8kyAgUOyIoy969fyc0WJqBDExtZ16gkSgDYpMG93erVeGccFK4LSDDM7LLCyNHDHhv6Yrb54aQweViTw8V74uVVW0cQk8NkhzRQ+21bfTYiQZlUH539ng7nRGkRXqh38VF8O9KLdNTwgMPd6e1UOAqpSreXK1mFPicfaxlVVrKX3PlO9h1PeGCluBAI3q1XyITvvHIDr0jj8huWGXwSh92zo/bMXgVlJnTsudLkVvjLhAmDFGRcEqDDbyEn9Ic3AguQT3GiXWjgmMTpFIg1c0yggGI0rjOGUlBOD7JduTztcYm7efe83+ZbSmYW/Xh42IAHIOWXC2d/jGDwuy8fsAKhNphveNKKFkWvVGLk= lagomes@redhat.com'
+
+  children:
+    services:
+      children:
+        pxe_hosts:
+          hosts:
+            pxe.conectado.local:
+              ansible_hostname: bastion.lagomes.conectado.local
+              ansible_host: 10.36.17.1
+              #ansible_connection: local
+        httpd_hosts:
+          hosts:
+            httpd.conectado.local:
+              ansible_hostname: bastion.lagomes.conectado.local
+              ansible_host: 10.36.17.1
+              #ansible_connection: local        
+    nodes:
+      children:
+        bastion:
+          hosts:
+            bastion.lagomes.conectado.local:
+              ansible_hostname: bastion.lagomes.conectado.local
+              ansible_host: 10.36.17.1
+              #ansible_connection: local
+
+        masters:
+          hosts:
+            master01.lagomes.conectado.local:
+              ansible_hostname: master01.lagomes.conectado.local
+              ansible_host: "10.36.17.101"
+              mac: 00:50:56:81:e7:3a
+              comment: |
+                xxxxx
+
+            master02.lagomes.conectado.local:
+              ansible_hostname: master02.lagomes.conectado.local
+              ansible_host: "10.36.17.102"
+              mac: 00:50:56:81:65:2d
+              comment: |
+                xxxxx
+
+            master03.lagomes.conectado.local:
+              ansible_hostname: master03.lagomes.conectado.local
+              ansible_host: "10.36.17.103"
+              mac: 00:50:56:81:ce:fc
+              comment: |
+                xxxxx
+
+        infras:
+          hosts:
+            infra01.lagomes.conectado.local:
+              ansible_hostname: infra01.lagomes.conectado.local
+              ansible_host: "10.36.17.104"
+              mac: 00:50:56:81:86:91
+              comment: |
+                xxxxx
+
+            infra02.lagomes.conectado.local:
+              ansible_hostname: infra02.lagomes.conectado.local
+              ansible_host: "10.36.17.105"
+              mac: 00:50:56:81:ba:ca
+              comment: |
+                xxxxx
+
+            infra03.lagomes.conectado.local:
+              ansible_hostname: infra03.lagomes.conectado.local
+              ansible_host: "10.36.17.106"
+              mac: 00:50:56:81:16:c1
+              comment: |
+                xxxxx
+
+        bootstrap:
+          hosts:             
+            bootstrap.lagomes.conectado.local:
+              ansible_hostname: bootstrap.lagomes.conectado.local
+              ansible_host: "10.36.17.100"
+              mac: 00:50:56:81:42:c1
+              comment: |
+                xxxxxx
+
+        workers:
+          hosts:
+            worker01.lagomes.conectado.local:
+              ansible_hostname: worker01.lagomes.conectado.local
+              ansible_host: "10.36.17.107"
+              mac: 00:50:56:81:55:de
+              comment: |
+                xxxxx
+
+            worker02.lagomes.conectado.local:
+              ansible_hostname: worker02.lagomes.conectado.local
+              ansible_host: "10.36.17.108"
+              mac: 00:50:56:81:39:f3
+              comment: |
+                xxxxx
+
+            worker03.lagomes.conectado.local:
+              ansible_hostname: worker03.lagomes.conectado.local
+              ansible_host: "10.36.17.109"
+              mac: 00:50:56:81:38:96
+              comment: |
+                xxxxx
+
+
+

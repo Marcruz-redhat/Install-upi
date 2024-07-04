@@ -1,0 +1,10 @@
+UI vesamenu.c32
+MENU BACKGROUND bg-ocp.png
+MENU COLOR sel         4  #ffffff std
+MENU COLOR title       1  #ffffff
+PROMPT 0
+TIMEOUT 10
+MENU title **** OpenShift 4 {{ hostvars[item]['ansible_hostname'] | basename }} PXE Boot Menu ****
+LABEL Install RHCOS 4.10 {{ hostvars[item]['ansible_hostname'] | basename }} Node
+    KERNEL pxelinux/images/coreos/rhcos-live-kernel-x86_64
+    APPEND initrd=pxelinux/images/coreos/rhcos-live-initramfs.x86_64.img,pxelinux/images/coreos/rhcos-live-rootfs.x86_64.img ip=dhcp rd.neednet=1 coreos.inst.install_dev=/dev/sda console=tty0 console=ttyS0 coreos.inst=yes coreos.inst.ignition_url=http://10.36.17.1:9090/worker.ign

@@ -1,0 +1,54 @@
+---
+- name: Prepare PXE
+  hosts: pxe_hosts
+  gather_facts: false
+  tasks:
+
+    - name: Install git client
+      ansible.builtin.dnf:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - httpd
+        - git
+        - "@Container Management"
+
+    - name: Create directory PXE
+      ansible.builtin.file:
+        state: directory
+        path: /opt/pxelinux.cfg
+        mode: '0755'
+        owner: root
+        group: root
+
+    - name: CReate files
+      with_items:
+        - "{{ groups['masters'] + groups['infras'] + groups['bootstrap'] + groups['workers'] | default([]) }}"      
+      ansible.builtin.template:
+        src: template/pxe.j2
+        dest: /opt/pxelinux.cfg/01-{{ hostvars[item]['mac'].replace(':', '-') }}
+        mode: '0644'
+        owner: root
+        group: root
+
+    - name: Start container tftp-server
+      containers.podman.podman_container:
+        name: pxe
+        image: quay.io/lagomes/pxe-tftp:latest
+        state: started
+        restart: true
+        ports:
+          - "69:69/udp"
+        volume:
+          - /opt/pxelinux.cfg:/var/lib/tftpboot/pxelinux.cfg/:Z
+          - /opt/rhcos/:/var/lib/tftpboot/pxelinux/images/coreos/:Z
+
+    - name: Permmit Firewall
+      ansible.posix.firewalld:
+        port: "{{ item }}"
+        permanent: true
+        state: enabled
+        immediate: true
+      loop:
+        - 5432/tcp
+        - 69/udp

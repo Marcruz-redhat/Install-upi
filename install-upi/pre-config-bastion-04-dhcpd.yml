@@ -1,0 +1,22 @@
+---
+- name: Prepare dhcpd
+  hosts: bastion
+  gather_facts: false
+  tasks:
+  
+    - name: Install dhcp client
+      ansible.builtin.dnf:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - dhcp-server
+        - dhcp-common
+  
+    - name: CReate files
+      ansible.builtin.template:
+        src: template/dhcpd.j2
+        dest: /opt/dhcpd.conf
+        mode: '0644'
+        owner: root
+        group: root
+
